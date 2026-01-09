@@ -89,11 +89,3 @@ Este proyecto implementa prácticas modernas de ingeniería de software:
 
 ---
 
-## 🚀 Puntos Clave para LinkedIn
-
-Si compartes esto en LinkedIn, puedes destacar:
-
-1.  **Arquitectura Limpia**: Separación de responsabilidades entre Modelos (ORM), Esquemas (Pydantic) y Servicios.
-2.  **DevOps First**: Entorno reproducible con Docker y Docker Compose desde el día 1.
-3.  **Resiliencia**: Manejo de errores robusto y validaciones estrictas para asegurar la integridad de datos.
-4.  **Testing Moderno**: Uso de contenedores efímeros para pruebas de integración reales (no solo mocks).
