@@ -15,7 +15,7 @@ graph TD
         Swagger[fa:fa-file-code Swagger UI]
     end
 
-    subgraph DockerHost [🐳 Docker Host (Docker Compose)]
+    subgraph DockerHost ["🐳 Docker Host (Docker Compose)"]
         direction TB
 
         subgraph AppContainer [Contenedor API]
