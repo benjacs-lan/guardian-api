@@ -1,0 +1,113 @@
+services:
+  # Redis Database
+  redis:
+    image: redis:7-alpine
+    container_name: guardian-redis
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - guardian_network
+    # Port Exposure (debug)
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+  # ==========================================================================
+  # Guardian API Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+
+    container_name: guardian-api
+
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+      - REDIS_DB=0
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - guardian_network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Redis Commander - Web UI for Redis
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: guardian-redis-ui
+    environment:
+      - REDIS_HOST=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - guardian_network
+    restart: unless-stopped
+    profiles:
+      - tools
+
+networks:
+  guardian_network:
+    driver: bridge
+    name: guardian_network
+volumes:
+  redis_data:
+    driver: local
+    name: guardian-redis-data
+# ============================================================================
+# Tests unitarios
+#docker run --rm -v $(pwd):/app -w /app python:3.12-slim bash -c \
+#  "pip install -q -r requirements.txt -r requirements-dev.txt && pytest test/unit/ -v"
+
+# Tests de integración
+#docker run --rm -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock \
+#  -w /app --network guardian_network -e REDIS_HOST=redis python:3.12-slim bash -c \
+#  "pip install -q -r requirements.txt -r requirements-dev.txt && pytest test/integration/ -v"
+
+# Todos los tests
+#docker run --rm -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock \
+#  -w /app --network guardian_network -e REDIS_HOST=redis python:3.12-slim bash -c \
+#  "pip install -q -r requirements.txt -r requirements-dev.txt && pytest test/unit/ test/integration/ -v"
